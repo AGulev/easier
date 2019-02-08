@@ -1,0 +1,58 @@
+local dirtylarry = require "gooey.themes.dirtylarry.dirtylarry"
+
+local function set_item(self, id, easing, time)
+	if not easing then
+		easing = go["EASING_"..self.list_data[id]]
+	end
+	msg.post("/go#canvas", "set_easing", {easing = easing, time = time})
+	self.list.selected_item = id
+end
+
+function init(self)
+	dirtylarry.acquire_input()
+
+	self.list_data = { "INBACK","INBOUNCE","INCIRC",
+	"INCUBIC","INELASTIC","INEXPO","INOUTBACK",
+	"INOUTBOUNCE","INOUTCIRC","INOUTCUBIC",
+	"INOUTELASTIC","INOUTEXPO","INOUTQUAD",
+	"INOUTQUART","INOUTQUINT","INOUTSINE",
+	"INQUAD","INQUART","INQUINT",
+	"INSINE","LINEAR","OUTBACK",
+	"OUTBOUNCE","OUTCIRC","OUTCUBIC",
+	"OUTELASTIC","OUTEXPO","OUTINBACK",
+	"OUTINBOUNCE","OUTINCIRC","OUTINCUBIC",
+	"OUTINELASTIC","OUTINEXPO","OUTINQUAD",
+	"OUTINQUART","OUTINQUINT","OUTINSINE",
+	"OUTQUAD","OUTQUART","OUTQUINT",
+	"OUTSINE" }
+	self.list = dirtylarry.dynamic_list("dynamiclist", self.list_data)
+	set_item(self, 1, nil, 0.5)
+
+	self.checkbox = dirtylarry.checkbox("interpolation")
+	self.checkbox.set_checked(true)
+
+	self.duration_config = {empty_text = 5}
+	self.easing = dirtylarry.input("easing", gui.KEYBOARD_TYPE_DEFAULT)
+	self.easing.set_text("0,0,0,0,1,1,1,1,0,0,0,0,1,1,1,1,0,0,0,0,1,1,1,1,0,0,0,0,1,1,1,1")
+end
+
+local function on_checked(checkbox)
+	msg.post("/go#canvas", "interpolation", {interpolation = checkbox.checked})
+end
+
+local function on_apply(self)
+	set_item(self, nil, self.custom_easing, 0)
+end
+
+function on_input(self, action_id, action)
+	dirtylarry.dynamic_list("dynamiclist", self.list_data, action_id, action, function(list)
+		set_item(self, list.selected_item, nil, 0)
+	end)
+	dirtylarry.checkbox("interpolation", action_id, action, on_checked)
+	self.input_duration = dirtylarry.input("duration", gui.KEYBOARD_TYPE_DEFAULT, action_id, action, self.duration_config)
+	if self.input_duration.out_now then
+		msg.post("/go#canvas", "time_update", {sec = tonumber(self.input_duration.text) or 5})
+	end
+	self.custom_easing = dirtylarry.input("easing", gui.KEYBOARD_TYPE_DEFAULT, action_id, action).text
+	dirtylarry.button("apply", action_id, action, function() on_apply(self) end)
+end

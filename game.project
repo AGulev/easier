@@ -1,0 +1,14 @@
+[bootstrap]
+main_collection = /main/main.collectionc
+
+[script]
+shared_state = 1
+
+[display]
+width = 640
+height = 512
+
+[project]
+title = easier
+dependencies = https://github.com/AGulev/drawpixels/archive/master.zip
+

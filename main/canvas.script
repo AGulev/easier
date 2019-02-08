@@ -1,0 +1,127 @@
+go.property("posy", 300)
+go.property("posx", 12)
+
+local START_XPOS = 12
+local START_YPOS = 300
+
+local END_XPOS = 1000
+local END_Y_POS = 800
+
+local ZERO_DIR = vmath.vector3(0)
+
+local FILLED_CIRCLE_SIZE = 8
+local DELAY_BETWEEN = 3
+
+local sec = 5
+local easing
+
+local drawer = {}
+
+local function draw_timeline(self, sec)
+	drawpixels.line(self.buffer_info, START_XPOS, START_YPOS, END_XPOS, START_YPOS, 255, 0, 0)
+	drawpixels.filled_circle(self.buffer_info, START_XPOS, START_YPOS, FILLED_CIRCLE_SIZE, 255, 0, 0)
+	drawpixels.filled_circle(self.buffer_info, END_XPOS, START_YPOS, FILLED_CIRCLE_SIZE, 255, 0, 0)
+	local step = (END_XPOS - START_XPOS) / sec
+	for i = 1, sec do
+		drawpixels.filled_circle(self.buffer_info, START_XPOS + step * i, START_YPOS, FILLED_CIRCLE_SIZE, 255, 0, 0)
+	end
+	drawpixels.line(self.buffer_info, END_XPOS, END_Y_POS, END_XPOS, 0, 255, 0, 0)
+	drawpixels.filled_circle(self.buffer_info, END_XPOS, END_Y_POS, FILLED_CIRCLE_SIZE, 255, 0, 0)
+end
+
+local function play_animation(self)
+	self.need_to_update = true
+	drawpixels.fill(self.buffer_info, 255, 255, 255)
+	self.prev = vmath.vector3(START_XPOS, START_YPOS, 0)
+	go.animate("#", "posx", go.PLAYBACK_ONCE_FORWARD, END_XPOS, go.EASING_LINEAR, sec, 0, function()
+		self.next_update_the_last = true
+		drawer.restart(self)
+	end)
+	go.animate("#", "posy", go.PLAYBACK_ONCE_FORWARD, END_Y_POS, easing, sec)
+end
+
+function drawer.restart(self, time)
+	if self.pause_timer then
+		timer.cancel(self.pause_timer)
+	end
+	self.pause_timer = timer.delay(time or DELAY_BETWEEN, false, function()
+		self.posx = START_XPOS
+		self.posy = START_YPOS
+		play_animation(self)
+		draw_timeline(self, sec)
+	end)
+end
+
+function init(self)
+	msg.post("@render:", "clear_color", {color = vmath.vector4(1, 1, 1, 1)})
+	self.interpolation = true
+	self.pos = vmath.vector3()
+	local width = 1024
+	local height = 1024
+	local channels = 3
+
+	self.buffer_info = {
+		buffer = buffer.create(width * height, {{
+			name = hash("rgb"), 
+			type = buffer.VALUE_TYPE_UINT8, 
+			count = channels
+		}}),
+		width = width,
+		height = height,
+		channels = channels
+	}
+	self.resource_path = go.get("#sprite", "texture0")
+	self.header = {
+		width = width,
+		height = height,
+		type = resource.TEXTURE_TYPE_2D,
+		format = resource.TEXTURE_FORMAT_RGB,
+		num_mip_maps = 1
+	}
+end
+
+function update(self, dt)
+	if self.need_to_update then
+		self.pos.x = self.posx
+		self.pos.y = self.posy
+		if self.interpolation then
+			self.length = math.ceil(vmath.length(self.prev - self.pos))
+			local dir = vmath.normalize(self.prev - self.pos)
+			if self.length == 0 then
+				self.length = 1
+				dir = ZERO_DIR
+			end
+			while self.length  > 0 do
+				drawpixels.filled_circle(self.buffer_info, self.prev.x, self.prev.y, 4, 0, 0, 0, 255)
+				self.prev = self.prev - dir
+				self.length  = self.length  - 1
+			end
+		else
+			drawpixels.filled_circle(self.buffer_info, self.prev.x, self.prev.y, 4, 0, 0, 0, 255)
+		end
+		self.prev.x = self.posx
+		self.prev.y = self.posy
+		resource.set_texture(self.resource_path, self.header, self.buffer_info.buffer)
+		if self.next_update_the_last then
+			self.need_to_update = false
+			self.next_update_the_last = false
+		end
+	end
+end
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("set_easing") then
+		drawer.restart(self, message.time)
+		if message.easing then
+			if type(message.easing) == "number" then
+				easing = message.easing
+			else
+				easing = loadstring("return vmath.vector({"..message.easing.."})")()
+			end
+		end
+	elseif message_id == hash("interpolation") then
+		self.interpolation = message.interpolation
+	elseif message_id == hash("time_update") then
+		sec = message.sec
+	end
+end
