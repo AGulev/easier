@@ -1,8 +1,6 @@
 local dirtylarry = require "gooey.themes.dirtylarry.dirtylarry"
 
-local easing_field_params = {
-	allowed_characters = "[0123456789.,]"
-}
+local DEFAULT_TIME = 1
 
 local function set_item(self, id, easing, time)
 	if not easing then
@@ -35,7 +33,8 @@ function init(self)
 	self.checkbox = dirtylarry.checkbox("interpolation")
 	self.checkbox.set_checked(true)
 
-	self.duration_config = {empty_text = 5}
+	self.duration_config = {empty_text = DEFAULT_TIME, allowed_characters = "[0123456789]"}
+	self.easing_config = {allowed_characters = "[0123456789.,]"}
 	self.easing = dirtylarry.input("easing", gui.KEYBOARD_TYPE_DEFAULT)
 	self.easing.set_text("0,0,0,0,1,1,1,1,0,0,0,0,1,1,1,1,0,0,0,0,1,1,1,1,0,0,0,0,1,1,1,1")
 end
@@ -55,8 +54,8 @@ function on_input(self, action_id, action)
 	dirtylarry.checkbox("interpolation", action_id, action, on_checked)
 	self.input_duration = dirtylarry.input("duration", gui.KEYBOARD_TYPE_DEFAULT, action_id, action, self.duration_config)
 	if self.input_duration.out_now then
-		msg.post("/go#canvas", "time_update", {sec = tonumber(self.input_duration.text) or 5})
+		msg.post("/go#canvas", "time_update", {sec = tonumber(self.input_duration.text) or DEFAULT_TIME})
 	end
-	self.custom_easing = dirtylarry.input("easing", gui.KEYBOARD_TYPE_DEFAULT, action_id, action, easing_field_params).text
+	self.custom_easing = dirtylarry.input("easing", gui.KEYBOARD_TYPE_DEFAULT, action_id, action, self.easing_config).text
 	dirtylarry.button("apply", action_id, action, function() on_apply(self) end)
 end

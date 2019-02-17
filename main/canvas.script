@@ -9,10 +9,14 @@ local END_Y_POS = 800
 
 local ZERO_DIR = vmath.vector3(0)
 
+local SCALE_INIT = 0.5
+local SCALE_RESULT = 1
+
 local FILLED_CIRCLE_SIZE = 8
 local DELAY_BETWEEN = 3
+local DEFAULT_TIME = 1
 
-local sec = 5
+local sec = DEFAULT_TIME
 local easing
 
 local drawer = {}
@@ -38,6 +42,10 @@ local function play_animation(self)
 		drawer.restart(self)
 	end)
 	go.animate("#", "posy", go.PLAYBACK_ONCE_FORWARD, END_Y_POS, easing, sec)
+
+	--scale
+	go.set(self.scale_obj, "scale", SCALE_INIT)
+	go.animate(self.scale_obj, "scale", go.PLAYBACK_ONCE_FORWARD, SCALE_RESULT, easing, sec)
 end
 
 function drawer.restart(self, time)
@@ -53,6 +61,8 @@ function drawer.restart(self, time)
 end
 
 function init(self)
+	self.scale_obj = msg.url("btn")
+	go.set("btn#sprite", "scale", vmath.vector3(0.75,0.75,0.9))
 	msg.post("@render:", "clear_color", {color = vmath.vector4(1, 1, 1, 1)})
 	self.interpolation = true
 	self.pos = vmath.vector3()
