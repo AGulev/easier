@@ -62,7 +62,7 @@ end
 
 function init(self)
 	self.scale_obj = msg.url("btn")
-	go.set("btn#sprite", "scale", vmath.vector3(0.75,0.75,0.9))
+	go.set("btn#sprite", "scale", vmath.vector3(0.75, 0.75, 1))
 	msg.post("@render:", "clear_color", {color = vmath.vector4(1, 1, 1, 1)})
 	self.interpolation = true
 	self.pos = vmath.vector3()
